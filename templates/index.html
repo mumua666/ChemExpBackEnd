@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f3f3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        #content {
+            text-align: center;
+            max-width: 820px;
+            margin-top: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #666;
+        }
+
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+
+        .media-container {
+            display: flex;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .media-container:first-child {
+            margin-right: 20px;
+            /* 在第一个容器的右侧添加间隔 */
+        }
+
+        .media-container img,
+        .media-container video {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .original {
+            width: 400px;
+            overflow: hidden;
+        }
+
+        .processed {
+            flex: 2;
+            /* 右边容器占据剩余空间 */
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        /* 新增样式：模态框 */
+        .modal {
+            display: none;
+            /* 默认隐藏 */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.9);
+            /* 半透明黑色背景 */
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 800px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            /* 居中显示图片 */
+        }
+
+        .close {
+            color: #ccc;
+            font-size: 36px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        #downloadButton {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+
+        }
+
+        /* 新增样式：响应式图片 */
+        .modal-content img,
+        .modal-content video {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 新增模态框 -->
+    <div id="myModal" class="modal" onclick="closeModal()">
+        <div class="modal-content" id="modalContent" onclick="stopPropagation(event)">
+            <!-- 放大后的图片或视频将在这里显示 -->
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+    </div>
+
+    <div id="content">
+        <h1>照片/视频检测</h1>
+
+        <!-- 上传图片 -->
+        <h2>上传图片</h2>
+        <input type="file" id="imageFile" accept="image/*" onchange="displaySelectedImage()">
+        <button onclick="uploadImage()">上传</button>
+        <button id="downloadImageButton" onclick="downloadProcessedImage()">下载</button>
+        <br>
+        <div class="media-container">
+            <div class="original media-container" onclick="enlargeImage()">
+                <img id="uploadedImage" src="#" alt="Uploaded Image" style="display:none;">
+                <button id="zoomInButton" style="display:none;">Zoom In</button>
+            </div>
+            <div class="processed media-container" onclick="enlargeImage2()">
+                <img id="processedImage" src="#" alt="Processed Image" style="display:none;">
+
+            </div>
+        </div>
+        <br>
+
+        <!-- 上传视频 -->
+        <h2>上传视频</h2>
+        <input type="file" id="videoFile" accept="video/mp4,video/x-m4v,video/*" onchange="displaySelectedVideo()">
+        <button onclick="uploadVideo()">上传</button>
+        <button id="downloadButton" onclick="downloadProcessedVideo()">下载</button>
+        <br>
+        <div class="media-container">
+            <div class="original media-container">
+                <video id="uploadedVideo" src="#" controls style="display:none;"></video>
+            </div>
+            <div class="processed media-container">
+                <video id="processedVideo" controls style="display:none;"></video>
+
+            </div>
+        </div>
+        <br>
+
+    </div>
+
+    <script>
+        // 显示选择的权重文件
+
+        // 显示选择的图片并添加点击放大功能
+        function displaySelectedImage() {
+            var fileInput = document.getElementById('imageFile');
+            var file = fileInput.files[0];
+            var imageElement = document.getElementById('uploadedImage');
+            imageElement.src = URL.createObjectURL(file);
+            imageElement.style.display = 'inline';
+            document.getElementById('zoomInButton').style.display = 'inline';
+        }
+
+        // 显示模态框并放大图片
+        function enlargeImage() {
+            var modal = document.getElementById('myModal');
+            var modalImg = document.getElementById('modalContent');
+            var img = document.getElementById('uploadedImage');
+            modal.style.display = 'block';
+            modalImg.innerHTML = '<img src="' + img.src + '">';
+        }
+        // 显示模态框并放大图片
+        function enlargeImage2() {
+            var modal = document.getElementById('myModal');
+            var modalImg = document.getElementById('modalContent');
+            var img = document.getElementById('processedImage');
+            modal.style.display = 'block';
+            modalImg.innerHTML = '<img src="' + img.src + '">';
+        }
+
+
+        // 显示选择的视频并添加点击放大功能
+        function displaySelectedVideo() {
+            var fileInput = document.getElementById('videoFile');
+            var file = fileInput.files[0];
+            var videoElement = document.getElementById('uploadedVideo');
+            videoElement.src = URL.createObjectURL(file);
+            videoElement.style.display = 'block';
+        }
+
+
+        // 上传图片并向后端发送请求
+        function uploadImage() {
+            var fileInput = document.getElementById('imageFile');
+            var file = fileInput.files[0];
+            var formData = new FormData();
+            formData.append('image', file);
+
+            fetch('/predict_image', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    var imageElement = document.getElementById('processedImage');
+                    imageElement.src = data.image;
+                    imageElement.style.display = 'inline';
+                    document.getElementById('downloadImageButton').style.display = 'inline';
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // 下载处理后的图片
+        function downloadProcessedImage() {
+            var imageElement = document.getElementById('processedImage');
+            var url = imageElement.src;
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'processed_image.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // 上传视频并向后端发送请求
+        function uploadVideo() {
+            var fileInput = document.getElementById('videoFile');
+            var file = fileInput.files[0];
+            var formData = new FormData();
+            formData.append('video', file);
+
+            fetch('/predict_video', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    var videoElement = document.getElementById('processedVideo');
+                    // 修改路径为正确的 Flask url_for 生成的路径
+                    videoElement.src = '{{ url_for("static", filename="") }}' + data.output_video_path;
+                    videoElement.style.display = 'block';
+                    var downloadButton = document.getElementById('downloadButton');
+                    downloadButton.style.display = 'block';
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // 下载处理后的视频
+        function downloadProcessedVideo() {
+            var videoElement = document.getElementById('processedVideo');
+            var url = videoElement.src;
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'processed_video.mp4';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
